@@ -1,13 +1,15 @@
 var event = {};
 var context = {
   invokeid: 'string',
-  fail: function(err, data) {
+  fail: function(err) {
+    console.log('[FAIL]: ' + err);
     return 1;
   },
-  succeed: function(err, data) {
+  succeed: function(data) {
+    console.log('[SUCCESS]: ' + data);
     return 0;
   },
-  done: function(err, data) {
+  done: function(data) {
     return;
   }
 };

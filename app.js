@@ -12,10 +12,9 @@ exports.handler = function(event, context) {
       });
     })
     .then(function() {
-      context.succeed('[SUCCESS]');
+      context.succeed('success!');
     })
     .catch(function(err) {
-      console.log(err, err.trace);
-      context.fail('[FAIL]');
+      context.fail(err);
     });
 }
