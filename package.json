@@ -2,14 +2,16 @@
   "name": "lambda-smart-autoscaling",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node ./script/build.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "aws-sdk": "^2.2.15",
     "bluebird": "^3.0.5"
-  }
+  },
+  "devDependencies": {}
 }
