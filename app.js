@@ -53,7 +53,7 @@ function describeSlaveInstances() {
         Name: 'instance-state-name',
         Values: ['running']
       }
-    ],
+    ]
   })
     .then(function(data) {
       results = [];
