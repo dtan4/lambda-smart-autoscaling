@@ -22,7 +22,7 @@ function calculateBiddingPrice() {
   return ec2.describeSpotPriceHistoryAsync({
     AvailabilityZone: 'ap-northeast-1c',
     InstanceTypes: [INSTANCE_TYPE],
-    MaxResults: 1,
+    MaxResults: 1
   }).then(function(data) {
     recent_price = parseFloat(data.SpotPriceHistory[0].SpotPrice);
 
@@ -139,7 +139,7 @@ function requestOpts(requestCount, biddingPrice) {
     },
     SpotPrice: biddingPrice.toString(),
     ValidUntil: validUntil
-  }
+  };
 }
 
 function requestSpotInstances(requestCount, biddingPrice) {
@@ -155,7 +155,7 @@ exports.handler = function(event, context) {
             return calculateLaunchCounts(slaves);
           }),
         calculateBiddingPrice()
-      ])
+      ]);
     })
     .then(function(results) {
       requestCount = results[0];
@@ -179,4 +179,4 @@ exports.handler = function(event, context) {
     .catch(function(err) {
       context.fail(err.stack);
     });
-}
+};
