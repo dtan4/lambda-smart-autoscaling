@@ -12,6 +12,8 @@ const ONDEMAND_COUNT = 0;
 const LEAST_PRICE = 0;
 const ONDEMAND_PRICE = 0.279; // c4.xlarge
 
+const DRY_RUN = false;
+
 var AWS = require('aws-sdk');
 var Promise = require('bluebird');
 var ec2 = Promise.promisifyAll(new AWS.EC2());
@@ -66,12 +68,48 @@ function describeSlaveInstances() {
     });
 }
 
+function launchOpts(instanceCount) {
+  return {
+    BlockDeviceMappings: [
+      {
+        DeviceName: "/dev/xvda",
+        Ebs: {
+          DeleteOnTermination: true,
+          VolumeSize: VOLUME_SIZE,
+          VolumeType: VOLUME_TYPE
+        }
+      }
+    ],
+    DryRun: DRY_RUN,
+    ImageId: AMI_ID,
+    KeyName: KEY_NAME,
+    InstanceType: INSTANCE_TYPE,
+    MaxCount: instanceCount,
+    MinCount: 1,
+    Monitoring: {
+      Enabled: true
+    },
+    NetworkInterfaces: [
+      {
+        AssociatePublicIpAddress: true,
+        DeviceIndex: 0,
+        SubnetId: SUBNET_ID,
+        Groups: SECURITY_GROUPS
+      }
+    ]
+  };
+}
+
+function launchOndemandInstances(instanceCount) {
+  return ec2.runInstancesAsync(launchOpts(instanceCount));
+}
+
 function requestOpts(requestCount, biddingPrice) {
   validUntil = new Date();
   validUntil.setMinutes(validUntil.getMinutes() + 10);
 
   return {
-    DryRun: false,
+    DryRun: DRY_RUN,
     InstanceCount: requestCount,
     LaunchSpecification: {
       BlockDeviceMappings: [
@@ -105,10 +143,7 @@ function requestOpts(requestCount, biddingPrice) {
 }
 
 function requestSpotInstances(requestCount, biddingPrice) {
-  return ec2.requestSpotInstancesAsync(requestOpts(requestCount, biddingPrice))
-    .then(function(data) {
-      return data;
-    });
+  return ec2.requestSpotInstancesAsync(requestOpts(requestCount, biddingPrice));
 }
 
 exports.handler = function(event, context) {
@@ -125,12 +160,18 @@ exports.handler = function(event, context) {
     .then(function(results) {
       requestCount = results[0];
       biddingPrice = results[1];
-      return requestSpotInstances(requestCount, biddingPrice);
+      return biddingPrice < 0 ? requestSpotInstances(requestCount, biddingPrice) : launchOndemandInstances(requestCount);
     })
     .then(function(data) {
-      data.SpotInstanceRequests.forEach(function(request) {
-        console.log(request.SpotInstanceRequestId);
-      });
+      if (data.SpotInstanceRequests) {
+        data.SpotInstanceRequests.forEach(function(request) {
+          console.log(request.SpotInstanceRequestId);
+        });
+      } else {
+        data.Instances.forEach(function(instance) {
+          console.log(instance.InstanceId);
+        });
+      }
     })
     .then(function() {
       context.succeed('success!');
