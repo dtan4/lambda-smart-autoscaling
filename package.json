@@ -5,6 +5,7 @@
   "main": "app.js",
   "scripts": {
     "build": "node ./script/build.js",
+    "lint" : "eslint ./*.js",
     "local": "node ./driver.js"
   },
   "author": "",
@@ -13,5 +14,7 @@
     "aws-sdk": "^2.2.15",
     "bluebird": "^3.0.5"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "eslint": "^1.9.0"
+  }
 }
