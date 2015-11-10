@@ -14,9 +14,13 @@ const ONDEMAND_PRICE = 0.279; // c4.xlarge
 
 const DRY_RUN = false;
 
+const S3_BUCKET = '';
+const USER_DATA = '';
+
 var AWS = require('aws-sdk');
 var Promise = require('bluebird');
 var ec2 = Promise.promisifyAll(new AWS.EC2());
+var s3 = Promise.promisifyAll(new AWS.S3());
 
 function calculateBiddingPrice() {
   return ec2.describeSpotPriceHistoryAsync({
@@ -68,7 +72,16 @@ function describeSlaveInstances() {
     });
 }
 
-function launchOpts(instanceCount) {
+function fetchUserData(key) {
+  return s3.getObjectAsync({
+    Bucket: S3_BUCKET,
+    Key: key
+  }).then(function(data) {
+    return data.Body.toString();
+  });
+}
+
+function launchOpts(instanceCount, userData) {
   return {
     BlockDeviceMappings: [
       {
@@ -96,15 +109,16 @@ function launchOpts(instanceCount) {
         SubnetId: SUBNET_ID,
         Groups: SECURITY_GROUPS
       }
-    ]
+    ],
+    UserData: userData
   };
 }
 
-function launchOndemandInstances(instanceCount) {
-  return ec2.runInstancesAsync(launchOpts(instanceCount));
+function launchOndemandInstances(instanceCount, userData) {
+  return ec2.runInstancesAsync(launchOpts(instanceCount, userData));
 }
 
-function requestOpts(requestCount, biddingPrice) {
+function requestOpts(requestCount, biddingPrice, userData) {
   var validUntil = new Date();
   validUntil.setMinutes(validUntil.getMinutes() + 10);
 
@@ -135,15 +149,16 @@ function requestOpts(requestCount, biddingPrice) {
           SubnetId: SUBNET_ID,
           Groups: SECURITY_GROUPS
         }
-      ]
+      ],
+      UserData: userData
     },
     SpotPrice: biddingPrice.toString(),
     ValidUntil: validUntil
   };
 }
 
-function requestSpotInstances(requestCount, biddingPrice) {
-  return ec2.requestSpotInstancesAsync(requestOpts(requestCount, biddingPrice));
+function requestSpotInstances(requestCount, biddingPrice, userData) {
+  return ec2.requestSpotInstancesAsync(requestOpts(requestCount, biddingPrice, userData));
 }
 
 exports.handler = function(event, context) {
@@ -154,13 +169,17 @@ exports.handler = function(event, context) {
           .then(function(slaves) {
             return calculateLaunchCounts(slaves);
           }),
-        calculateBiddingPrice()
+        calculateBiddingPrice(),
+        fetchUserData(USER_DATA)
       ]);
     })
     .then(function(results) {
       var requestCount = results[0];
       var biddingPrice = results[1];
-      return biddingPrice < 0 ? requestSpotInstances(requestCount, biddingPrice) : launchOndemandInstances(requestCount);
+      var userData = results[2];
+
+      return biddingPrice > 0 ?
+        requestSpotInstances(requestCount, biddingPrice, userData) : launchOndemandInstances(requestCount, userData);
     })
     .then(function(data) {
       if (data.SpotInstanceRequests) {
