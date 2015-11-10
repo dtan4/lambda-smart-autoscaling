@@ -24,7 +24,7 @@ function calculateBiddingPrice() {
     InstanceTypes: [INSTANCE_TYPE],
     MaxResults: 1
   }).then(function(data) {
-    recent_price = parseFloat(data.SpotPriceHistory[0].SpotPrice);
+    var recent_price = parseFloat(data.SpotPriceHistory[0].SpotPrice);
 
     if (recent_price * 1.2 < LEAST_PRICE) {
       return LEAST_PRICE;
@@ -56,7 +56,7 @@ function describeSlaveInstances() {
     ]
   })
     .then(function(data) {
-      results = [];
+      var results = [];
 
       data.Reservations.forEach(function(reservation) {
         reservation.Instances.forEach(function(instance) {
@@ -105,7 +105,7 @@ function launchOndemandInstances(instanceCount) {
 }
 
 function requestOpts(requestCount, biddingPrice) {
-  validUntil = new Date();
+  var validUntil = new Date();
   validUntil.setMinutes(validUntil.getMinutes() + 10);
 
   return {
@@ -158,8 +158,8 @@ exports.handler = function(event, context) {
       ]);
     })
     .then(function(results) {
-      requestCount = results[0];
-      biddingPrice = results[1];
+      var requestCount = results[0];
+      var biddingPrice = results[1];
       return biddingPrice < 0 ? requestSpotInstances(requestCount, biddingPrice) : launchOndemandInstances(requestCount);
     })
     .then(function(data) {
